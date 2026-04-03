@@ -2,6 +2,13 @@ import random
 import pandas as pd
 import numpy as np
 
+moves={
+    "w": (-1, 0), # up
+    "a": (0, -1), # left
+    "s": (1, 0), # down
+    "d": (0, 1) # right
+}
+
 class Agent:
     def __init__(self, name, model):
         self.name = name
@@ -9,30 +16,28 @@ class Agent:
         self.state = None
         self.location = []
         self.move_list = []
-        self.moves={
-            "u": (-1, 0),
-            "d": (1, 0),
-            "l": (0, -1),
-            "r": (0, 1)
-        }
 
     def train(self, X, y):
         self.model.fit(X, y)
 
-    def act(self, mode="ai"):
-        if mode == "ai":
-            action = self.model.predict(self.state)[0]
-        else:
-            action = input("Enter your action: ")
-        self.log(action)
-        self.location = [a + b for a, b in zip(self.location, self.moves[action])]
+    def new_action(self, mode="ai"):
+        while True:
+            if mode == "ai":
+                action = self.model.predict(self.state)[0]
+            else:
+                action = input("Enter your action: ")
+
+            if action in moves: # control for user
+                self.log(action)
+                break
         return action
 
     def get_direction(self, goal_location):
         row_diff = goal_location[0] - self.location[0]
         col_diff = goal_location[1] - self.location[1]
         direction = np.array([row_diff, col_diff])
-        return direction / np.linalg.norm(direction)
+        unit_dir = np.round(direction / np.linalg.norm(direction), decimals=4)
+        return unit_dir
 
     def observe(self,map):
         tiles = map.tiles
@@ -62,7 +67,7 @@ class Agent:
 
     def save_log(self, filename):
         if self.move_list:
-            final_df = pd.concat(self.move_list, ignore_index=True)
+            final_df = pd.concat([pd.read_csv(filename)] + self.move_list, ignore_index=True)
             final_df.to_csv(filename, index=False)
             print(f"Log Saved: {filename}")
 
@@ -73,8 +78,8 @@ class Map:
         self.seed = seed
         self.name = f"Map_{seed}"
         self.map_size = map_size
-        self.goal_location = (random.randint(0, self.map_size - 1), random.randint(0, self.map_size - 1))
-        self.agent.location = (random.randint(0, self.map_size - 1), random.randint(0, self.map_size - 1)) # start location
+        self.goal_location = [random.randint(0, self.map_size - 1), random.randint(0, self.map_size - 1)]
+        self.agent.location = [random.randint(0, self.map_size - 1), random.randint(0, self.map_size - 1)] # start location
         self.tiles = []
         self.generate()
 
@@ -104,6 +109,20 @@ class Map:
         gx, gy = self.goal_location
         self.tiles[ax][ay] = 2
         self.tiles[gx][gy] = 3
+
+    def update_agent_position(self, action_taken):
+        old_x, old_y = self.agent.location
+        move_x, move_y = moves[action_taken]
+        new_x = old_x + move_x
+        new_y = old_y + move_y
+
+        if 0 <= new_x < self.map_size and 0 <= new_y < self.map_size and self.tiles[new_x][new_y] != 1:
+            self.tiles[old_x][old_y] = 0
+            self.tiles[new_x][new_y] = 2
+            self.agent.location = [new_x, new_y]
+            print("Reward: -1")
+        else:
+            print("Invalid move. Reward: -20")
 
     def display(self):
         symbol_map = {0: '.', 1: '#', 2: 'A', 3: 'G'}
