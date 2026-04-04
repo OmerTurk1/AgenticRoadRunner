@@ -11,3 +11,7 @@ print(df.head(),"\n")
 print("Counts of Actions Taken:")
 print(df["action"].value_counts(),"\n")
 
+for action in df["action"].unique():
+    action_df = df[df["action"] == action]
+    print(f"{action} move averages:")
+    print(action_df.drop(columns="action").mean())
