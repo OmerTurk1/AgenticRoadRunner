@@ -17,9 +17,6 @@ class Agent:
         self.location = []
         self.move_list = []
 
-    def train(self, X, y):
-        self.model.fit(X, y)
-
     def new_action(self, mode="ai"):
         while True:
             if mode == "ai":
@@ -87,10 +84,10 @@ class Map:
         print(f"Generating {self.name} with seed: {self.seed}")
         random.seed(self.seed)
 
-        # Zemin oluştur
+        # Create base
         self.tiles = [[0 for _ in range(self.map_size)] for _ in range(self.map_size)]
 
-        # Duvar oranı
+        # Wall ratio
         obstacle_density = 0.2
         obstacle_count = int(self.map_size * self.map_size * obstacle_density)
 
@@ -104,7 +101,7 @@ class Map:
                 self.tiles[row][col] = 1
                 placed += 1
 
-        # Agent ve hedefi yerleştir
+        # Place agent and goal
         ax, ay = self.agent.location
         gx, gy = self.goal_location
         self.tiles[ax][ay] = 2
