@@ -8,7 +8,7 @@ print(df.shape,"\n")
 print("Agent Move Log:")
 print(df.head(),"\n")
 
-print("Counts of Actions Taken:")
+print("Counts of Unique Actions:")
 print(df["action"].value_counts(),"\n")
 
 for action in df["action"].unique():

@@ -8,8 +8,14 @@ def main(player):
     while not map.is_reached_goal():
         map.display()
         agent.observe(map)
-        candidate_action = agent.new_action(player)
-        map.update_agent_position(candidate_action)
+        candidate_actions = agent.take_action(player) # from big probability to small probability
+        selected_action = None
+        for idx, action in enumerate(candidate_actions):
+            print(f"{idx}: {action}")
+            if map.is_appropriate_action(action):
+                selected_action = action
+                break
+        map.update_agent_position(selected_action)
         if player=="ai":
             print("-----------------------------")
             time.sleep(1)
@@ -19,4 +25,4 @@ def main(player):
     print("finished")
 
 if __name__ == "__main__":
-    main("user")
+    main("ai")

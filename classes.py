@@ -1,4 +1,5 @@
 import random
+from xml.parsers.expat import model
 import pandas as pd
 import numpy as np
 
@@ -17,17 +18,21 @@ class Agent:
         self.location = []
         self.move_list = []
 
-    def new_action(self, mode="ai"):
-        while True:
-            if mode == "ai":
-                action = self.model.predict(self.state)[0]
-            else:
+    def take_action(self, mode="ai"):
+        if mode == "ai":
+            # action = self.model.predict(self.state)[0]
+            probs = self.model.predict_proba(self.state)[0]
+            classes = self.model.classes_
+            sorted_indexes = np.argsort(probs)[::-1]
+            actions = classes[sorted_indexes]
+        else:
+            while True:
                 action = input("Enter your action: ")
-
-            if action in moves: # control for user
-                self.log(action)
-                break
-        return action
+                if action in moves:
+                    self.log(action)
+                    actions = [action]
+                    break
+        return actions
 
     def get_direction(self, goal_location):
         row_diff = goal_location[0] - self.location[0]
@@ -64,8 +69,10 @@ class Agent:
 
     def save_log(self, filename):
         if self.move_list:
+            print("Generated data length:", len(self.move_list))
             final_df = pd.concat([pd.read_csv(filename)] + self.move_list, ignore_index=True)
             final_df.to_csv(filename, index=False)
+            print("New total data length:", len(final_df))
             print(f"Log Saved: {filename}")
 
 class Map:
@@ -107,7 +114,20 @@ class Map:
         self.tiles[ax][ay] = 2
         self.tiles[gx][gy] = 3
 
+    def is_appropriate_action(self, action):
+        move_x, move_y = moves[action]
+        new_x = self.agent.location[0] + move_x
+        new_y = self.agent.location[1] + move_y
+
+        if 0 <= new_x < self.map_size and 0 <= new_y < self.map_size and self.tiles[new_x][new_y] != 1:
+            return True
+        return False
+    
     def update_agent_position(self, action_taken):
+        if action_taken is None:
+            print("No valid action taken. Agent stays in place. Reward: -20")
+            return
+        
         old_x, old_y = self.agent.location
         move_x, move_y = moves[action_taken]
         new_x = old_x + move_x
@@ -117,9 +137,8 @@ class Map:
             self.tiles[old_x][old_y] = 0
             self.tiles[new_x][new_y] = 2
             self.agent.location = [new_x, new_y]
-            print("Reward: -1")
         else:
-            print("Invalid move. Reward: -20")
+            print("Invalid move!")
 
     def display(self):
         symbol_map = {0: '.', 1: '#', 2: 'A', 3: 'G'}
